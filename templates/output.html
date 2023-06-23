@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Output</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Output</h1>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody id="output-table-body">
+                <!-- Table rows will be dynamically added here -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        var params = new URLSearchParams(window.location.search);
+        var data = {};
+        params.forEach(function(value, key) {
+            data[key] = value;
+        });
+
+        // Call the displayOutput function with the extracted data
+        displayOutput(data);
+
+        function displayOutput(data) {
+            var tableBody = document.getElementById('output-table-body');
+            tableBody.innerHTML = '';
+
+            // Add rows for each field-value pair
+            Object.keys(data).forEach(function(key) {
+                var row = document.createElement('tr');
+
+                var fieldCell = document.createElement('td');
+                fieldCell.innerText = key;
+                row.appendChild(fieldCell);
+
+                var valueCell = document.createElement('td');
+                valueCell.innerText = data[key];
+                row.appendChild(valueCell);
+
+                tableBody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>

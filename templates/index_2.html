@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Image Labeler</title>
+  <style>
+    #image-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 400px;
+      position: relative;
+    }
+
+    #image-preview {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .label-marker {
+      position: absolute;
+      background-color: rgba(255, 255, 0, 0.5);
+      border: 2px solid yellow;
+      pointer-events: none;
+    }
+
+    .label-text {
+      position: absolute;
+      background-color: yellow;
+      font-weight: bold;
+      padding: 2px 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Image Labeler</h1>
+  <input type="file" id="image-upload" accept="image/*">
+  <div id="image-container">
+    <img id="image-preview" src="" alt="Preview">
+    <div class="label-marker" id="invoice-marker"></div>
+    <div class="label-marker" id="amount-marker"></div>
+    <div class="label-marker" id="description-marker"></div>
+    <div class="label-marker" id="tax-type-marker"></div>
+    <div class="label-marker" id="tax-rate-marker"></div>
+  </div>
+  <div id="label-container">
+    <h2>Labels</h2>
+    <div class="label-text" id="invoice-label">Invoice Number</div>
+    <div class="label-text" id="amount-label">Amount</div>
+    <div class="label-text" id="description-label">Description</div>
+    <div class="label-text" id="tax-type-label">Tax Type</div>
+    <div class="label-text" id="tax-rate-label">Tax Rate</div>
+  </div>
+
+  <script src="label.js">
+    // Function to display the selected image preview
+        function showPreview(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+            const imagePreview = document.getElementById("image-preview");
+            imagePreview.src = e.target.result;
+            };
+            
+            reader.readAsDataURL(file);
+            
+            // Enable the label markers
+            const labelMarkers = document.getElementsByClassName("label-marker");
+            for (let i = 0; i < labelMarkers.length; i++) {
+            labelMarkers[i].style.display = "block";
+            }
+        }
+        
+        // Function to handle label marker selection
+        function handleMarkerSelection(event) {
+            const markerId = event.target.id;
+            const marker = document.getElementById(markerId);
+            
+            const labelContainer = document.getElementById("label-container");
+            const label = document.getElementById(markerId.replace("-marker", "-label"));
+            
+            label.style.top = `${marker.offsetTop}px`;
+            label.style.left = `${marker.offsetLeft + marker.offsetWidth}px`;
+            labelContainer.appendChild(label);
+        }
+        
+        // Add event listeners
+        const imageUpload = document.getElementById("image-upload");
+        imageUpload.addEventListener("change", showPreview);
+        
+        const labelMarkers = document.getElementsByClassName("label-marker");
+        for (let i = 0; i < labelMarkers.length; i++) {
+            labelMarkers[i].addEventListener("click", handleMarkerSelection);
+        }
+  
+  </script>
+</body>
+</html>

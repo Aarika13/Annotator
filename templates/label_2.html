@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Invoice OCR Annotation Tool</title>
+    </head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    </head>
+    <style>
+        .labeleling{
+            padding:2px;
+        }
+        .image-container {
+            position: relative;
+            display: inline-block;
+        }
+        .annotation-label {
+            position: absolute;
+            background-color: rgba(0, 0, 255, 0.3);
+            pointer-events: none;
+        }
+        .annotation-label input {
+            display: none;
+            width: 100%;
+            border: none;
+            background-color: transparent;
+            color: white;
+            text-align: center;
+        }
+        .annotation-label:hover input {
+            display: block;
+        }
+        .selected {
+            border: 2px dashed red;
+        }
+    </style>
+    <body>
+        <div class="container">
+            <h1 class="text-center">Invoice OCR Annotation Tool</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="image-container">
+                    <canvas id="canvas"></canvas>
+                    <img id="image" src="{{ image_path }}" class="img-fluid" alt="Invoice Image">
+                    <div id="labels-container"></div>
+                </div>
+                <div class="annotation-buttons">
+                    <button id="start-button" class="btn btn-primary">Start Annotation</button>
+                    <button id="save-button" class="btn btn-success">Save Annotations</button>
+                    
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="labeled-data">
+                    <h4>Labeled Data</h4>
+                    <ul id="labeled-list"></ul>
+                    
+                    <div class="labeling">
+                        <button type="button" class="btn btn-primary" style="background-color:blue; margin:10px" id="invoice">Invoice <span class="badge">1</span></button>
+                        <button type="button" class="btn btn-primary"  id="clear-button" onclick="fun()">Clear</button>
+                        <input type="text" class="form-control" id="invoice-input" style="display: flex; padding:2x; margin:2px;">
+                        <br>
+
+                        <button type="button" class="btn btn-primary" style="background-color:green; margin:10px" id="date">Date<span class="badge">2</span></button>
+                        <button type="button" class="btn btn-primary"  id="clear-button" onclick="fun()">Clear</button>
+                        <input type="text" class="form-control" id="date-input" style="display: flex; padding:2x; margin:2px;">
+                        <br>
+                        
+                        <button type="button" class="btn btn-primary" style="background-color:red; margin:10px" id="tax">Tax <span class="badge">3</span></button>
+                        <button type="button" class="btn btn-primary"  id="clear-button" onclick="fun()">Clear</button>
+                        <input type="text" class="form-control" id="tax-input" style="display: flex; padding:2x; margin:2px;">
+                        <br>
+                        
+                        <button type="button" class="btn btn-primary" style="background-color:violet; margin:10px"id="rate">Tax_Rate <span class="badge">4</span></button>
+                        <button type="button" class="btn btn-primary" id="clear-button" onclick="fun()">Clear</button>
+                        <input type="text" class="form-control" id="rate-input" style="display:flex; padding:2px; margin:2px;">
+                        <br> 
+                        
+                        <button type="button" class="btn btn-primary" style="background-color:orange; margin:10px" id="description">Description <span class="badge">5</span></button>
+                        <button type="button" class="btn btn-primary" onclick="fun()" id="clear-button">Clear</button>
+                        <input type="text" class="form-control" id="description-input" style="display: flex; padding:2px; margin:2px;">
+                        <br>
+                        
+                        <button type="button" class="btn btn-primary" style="background-color:pink; margin:10px" id="amount">Amount <span class="badge">6</span></button>
+                        <button type="button" class="btn btn-primary" onclick="fun()" id="clear-button">Clear</button>
+                        <input type="text" class="form-control" id="amount-input" style="display:flex; padding:5x; margin:5px;">
+                        <br>
+                        <button type="button" class="btn btn-primary" style="display:flex;" id="update-invoice">Update</button>
+                    </div>
+
+                </div>
+            </div>
+
+
+        </div>
+    </body>
+    <script>
+        var startButton = document.getElementById('start-button');
+        var saveButton = document.getElementById('save-button');
+        
+        var labelsContainer = document.getElementById('labels-container');
+        var annotationStarted = false;
+        var currentLabelId = 1;
+
+        
+        startButton.addEventListener('click', function () {
+            annotationStarted = true;
+            canvas.addEventListener('mousedown', startAnnotation);
+            canvas.style.cursor = 'crosshair';
+        });
+
+        saveButton.addEventListener('click', function () {
+            annotationStarted = false;
+            canvas.removeEventListener('mousedown', startAnnotation);
+            canvas.style.cursor = 'default';
+            sendAnnotations();
+        });
+        function fun() {
+            var inputFields = document.getElementsByClassName("form-control");
+            for (var i = 0; i < inputFields.length; i++) {
+              inputFields[i].value = "";
+            }
+        }   
+     
+ /*
+        function startAnnotation(event) {
+            if (annotationStarted) {
+                var label = createAnnotationLabel(event.clientX, event.clientY);
+                labelsContainer.appendChild(label);
+                label.querySelector('input').focus();
+                label.addEventListener('input').focus();
+                label.ass
+            }
+        }
+
+        function createAnnotationLabel(x, y) {
+            var label = document.createElement('div');
+            label.className = 'annotation-label';
+            label.style.left = x + 'px';
+            label.style.top = y + 'px';
+
+            var labelId = currentLabelId++;
+            label.innerHTML = '<input type="text" class="form-control" placeholder="Label ' + labelId + '">';
+
+            label.addEventListener('mousedown', function (event) 
+            {
+                event.stopPropagation();
+            });
+
+            label.querySelector('input').addEventListener('input', function () {
+                var labelText = this.value;
+                    // Update label logic here
+                    // ...
+            });
+
+            return label;
+        }
+
+        function sendAnnotations() {
+            var labels = labelsContainer.querySelectorAll('.annotation-label');
+            var annotations = [];
+
+            labels.forEach(function (label) {
+                var input = label.querySelector('input');
+                var labelText = input.value;
+                    // Collect label coordinates and text for further processing or sending to the server
+                var annotation = {
+                    x: parseInt(label.style.left),
+                    y: parseInt(label.style.top),
+                    text: labelText
+                };
+                annotations.push(annotation);
+            });
+
+            console.log(annotations);
+        } */
+        /*for clearing the function*/
+        
+
+    </script>
+
+</html>

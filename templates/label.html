@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Invoice OCR Annotation Tool</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style>
+        .container {
+            margin-top: 50px;
+        }
+        .image-container {
+            text-align: center;
+        }
+        #image{
+            width: 20px 20px;
+        }
+        #canvas {
+            border: 1px solid black;
+            height: 30rem;
+            width: 30rem ;
+            margin-top: 20px;
+            cursor: crosshair;
+        }
+        .annotation-buttons {
+            margin-top: 20px;
+        }
+        #save-button {
+            margin-top: 10px;
+        }
+        .labeled-data {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Invoice OCR Annotation Tool</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="image-container">
+                    <canvas id="canvas"></canvas>
+                    <img id="image" src="{{ image_path }}" class="img-fluid" alt="Invoice Image">
+                    
+                </div>
+                <div class="annotation-buttons">
+                    <button id="start-button" class="btn btn-primary">Start Annotation</button>
+                    <button id="save-button" class="btn btn-success">Save Annotations</button>
+                    
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="labeled-data">
+                    <h4>Labeled Data</h4>
+                    <ul id="labeled-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+        var image = document.getElementById('image');
+        var annotations = [];
+        var annotationStarted = false;
+        var currentAnnotation = null;
+
+        var startButton = document.getElementById('start-button');
+        var saveButton = document.getElementById('save-button');
+        var labeledList = document.getElementById('labeled-list');
+
+        startButton.addEventListener('click', function() {
+            annotationStarted = true;
+            canvas.addEventListener('mousedown', startAnnotation);
+            canvas.style.cursor = 'crosshair';
+        });
+
+        saveButton.addEventListener('click', function() {
+            annotationStarted = false;
+            canvas.removeEventListener('mousedown', startAnnotation);
+            canvas.style.cursor = 'default';
+            sendAnnotations();
+        });
+
+        function startAnnotation(event) {
+            var rect = canvas.getBoundingClientRect();
+            var x = event.clientX - rect.left;
+            var y = event.clientY - rect.top;
+            currentAnnotation = {
+                x: x,
+                y: y,
+                width: 0,
+                height: 0,
+                invoice_number: '',
+                date: '',
+                description:'',
+                tax: '',
+                tax_type: '',
+                amount: ''
+            };
+            annotations.push(currentAnnotation);
+            canvas.addEventListener('mousemove', resizeAnnotation);
+            canvas.addEventListener('mouseup', endAnnotation);
+            drawAnnotations();
+        }
+
+        function resizeAnnotation(event) {
+            var rect = canvas.getBoundingClientRect();
+            currentAnnotation.width = event.clientX - rect.left - currentAnnotation.x;
+            currentAnnotation.height = event.clientY - rect.top - currentAnnotation.y;
+            drawAnnotations();
+        }
+
+        function endAnnotation() {
+            canvas.removeEventListener('mousemove', resizeAnnotation);
+            canvas.removeEventListener('mouseup', endAnnotation);
+            displayLabeledData();
+        }
+
+        function drawAnnotations() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 2;
+            for (var i = 0; i < annotations.length; i++) {
+                var annotation = annotations[i];
+                ctx.beginPath();
+                ctx.rect(annotation.x, annotation.y, annotation.width, annotation.height);
+                ctx.stroke();
+            }
+        }
+
+        function displayLabeledData() {
+            labeledList.innerHTML = '';
+            for (var i = 0; i < annotations.length; i++) {
+                var annotation = annotations[i];
+                var listItem = document.createElement('li');
+        
+                var invoiceNumberId = `invoice_number_${i}`;
+                var dateId = `date_${i}`;
+                var descriptionId = `description_${i}`;
+                var taxId = `tax_${i}`;
+                var taxTypeId = `tax_type_${i}`;
+                var amountId = `amount_${i}`; 
+        
+                listItem.innerHTML = `
+                <b>Label:</b> (${label.x}, ${label.y})<br>
+                <label>${label.name}:</label>
+                <input type="text" class="form-control" id="${label.id}" value="${label.value}">
+               
+                <button class="btn btn-primary" onclick="updateFieldValue(${i}, '${label.id}', ${j})">Update</button><br>
+
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Invoice Number:</label>
+                <input type="text" class="form-control" id="invoice_number_${i}" value="${annotation.invoice_number}">
+               
+                <button class="btn btn-primary" onclick="updateFieldValue(${i}, 'invoice_number')">Update</button><br>
+          
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Date:</label>
+                <input type="text" class="form-control" id="date_${i}" value="${annotation.date}">
+               
+                <button class="btn btn-primary" onclick="updateFieldValue(${i}, 'date')">Update</button><br>
+          
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Description:</label>
+                <input type="text" class="form-control" id="tax_${i}" value="${annotation.description}">
+                
+                <button class="btn btn-primary" onclick="updateFieldValue(${i}, 'description')">Update</button><br>
+          
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Tax:</label>
+                <input type="text" class="form-control" id="tax_${i}" value="${annotation.tax}">
+                
+                <button class="btn btn-primary" onclick="updateFieldValue(${i}, 'tax')">Update</button><br>
+          
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Tax Type:</label>
+                <input type="text" class="form-control" id="tax_type_${i}" value="${annotation.tax_type}">
+               
+                <button class="btn btn-primary" onclick="updateFieldValue(${i}, 'tax_type')">Update</button><br>
+          
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Total Amount:</label>
+                <input type="text" class="form-control" id="amount_${i}" value="${annotation.amount}">
+                
+                <button class="btn btn-primary" onclick="updateFieldValue(${i}, 'amount')">Update</button><br>
+                `;
+                listItem.innerHTML = labelHTML;
+                labeledList.appendChild(listItem);
+            }
+        }
+        
+
+        function extractFieldValue(index, field) {
+            var canvasRect = canvas.getBoundingClientRect();
+            var annotation = annotations[index];
+            var x = annotation.x;
+            var y = annotation.y;
+            var width = annotation.width;
+            var height = annotation.height;
+            var imageRect = image.getBoundingClientRect();
+            var scaleX = image.naturalWidth / imageRect.width;
+            var scaleY = image.naturalHeight / imageRect.height;
+            var croppedImage = document.createElement('canvas');
+            croppedImage.width = width;
+            croppedImage.height = height;
+            var croppedCtx = croppedImage.getContext('2d');
+            croppedCtx.drawImage(image, x * scaleX, y * scaleY, width * scaleX, height * scaleY, 0, 0, width, height);
+            var imageData = croppedCtx.getImageData(0, 0, width, height);
+            var OCRImage = document.createElement('canvas');
+            OCRImage.width = width;
+            OCRImage.height = height;
+            var OCRCtx = OCRImage.getContext('2d');
+            OCRCtx.putImageData(imageData, 0, 0);
+            var OCRDataURL = OCRImage.toDataURL('image/png');
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/extract', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    document.getElementById(field + '_' + index).value = response[field];
+                }
+            };
+            xhr.send(JSON.stringify({ image_data: OCRDataURL }));
+        }
+        function sendAnnotations(outputUrl) {
+            var labeledData = [];
+            for (var i = 0; i < annotations.length; i++) {
+                var annotation = annotations[i];
+                var invoiceNumber = document.getElementById('invoice_number_' + i).value;
+                var date = document.getElementById('date_' + i).value;
+                var description = document.getElementById('description_' + i).value;
+                var tax = document.getElementById('tax_' + i).value;
+                var taxType = document.getElementById('tax_type_' + i).value;
+                var amount = document.getElementById('amount_' + i).value;
+        
+                labeledData.push({
+                    x: annotation.x,
+                    y: annotation.y,
+                    width: annotation.width,
+                    height: annotation.height,
+                    invoice_number: invoiceNumber,
+                    date: date,
+                    description: description,
+                    tax: tax,
+                    tax_type: taxType,
+                    amount: amount
+                });
+            }
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/extract', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    displayOutput(response, outputUrl);
+                }
+            };
+            xhr.send(JSON.stringify({ image_data: image.src }));
+        }
+        
+        function displayLabeledData() {
+            labeledList.innerHTML = '';
+            for (var i = 0; i < annotations.length; i++) {
+              var annotation = annotations[i];
+              var listItem = document.createElement('li');
+              listItem.innerHTML = `
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Invoice Number:</label>
+                <input type="text" class="form-control" id="invoice_number_${i}" value="${annotation.invoice_number}">
+                <button class="btn btn-primary" onclick="extractFieldValue(${i}, 'invoice_number')">Extract</button>
+                <button class="btn btn-primary" onclick="clearFieldValue(${i}, 'invoice_number')">Clear</button><br>
+          
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Date:</label>
+                <input type="text" class="form-control" id="date_${i}" value="${annotation.date}">
+                <button class="btn btn-primary" onclick="extractFieldValue(${i}, 'date')">Extract</button>
+                <button class="btn btn-primary" onclick="clearFieldValue(${i}, 'date')">Clear</button><br>
+          
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Description:</label>
+                <input type="text" class="form-control" id="description_${i}" value="${annotation.description}">
+                <button class="btn btn-primary" onclick="extractFieldValue(${i}, 'description')">Extract</button>
+                <button class="btn btn-primary" onclick="clearFieldValue(${i}, 'description')">Clear</button><br>
+          
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Tax:</label>
+                <input type="text" class="form-control" id="tax_${i}" value="${annotation.tax}">
+                <button class="btn btn-primary" onclick="extractFieldValue(${i}, 'tax')">Extract</button>
+                <button class="btn btn-primary" onclick="clearFieldValue(${i}, 'tax')">Clear</button><br>
+          
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Tax Type:</label>
+                <input type="text" class="form-control" id="tax_type_${i}" value="${annotation.tax_type}">
+                <button class="btn btn-primary" onclick="extractFieldValue(${i}, 'tax_type')">Extract</button>
+                <button class="btn btn-primary" onclick="clearFieldValue(${i}, 'tax_type')">Clear</button><br>
+          
+                <b>Label:</b> (${annotation.x}, ${annotation.y})<br>
+                <label>Total Amount:</label>
+                <input type="text" class="form-control" id="amount_${i}" value="${annotation.amount}">
+                <button class="btn btn-primary" onclick="extractFieldValue(${i}, 'amount')">Extract</button>
+                <button class="btn btn-primary" onclick="clearFieldValue(${i}, 'amount')">Clear</button><br>
+              `;
+              labeledList.appendChild(listItem);
+            }
+          }
+          
+          function extractFieldValue(index, field) {
+            // TODO: Implement logic to extract field value from the labeled part using Pytesseract
+            var fieldValue = ""; // Replace with your Pytesseract extraction logic
+            document.getElementById(`${field}_${index}`).value = fieldValue;
+          }
+          
+          function clearFieldValue(index, field) {
+            // Clear the field value
+            document.getElementById(`${field}_${index}`).value = "";
+          }
+        
+    </script>
+</body>
+</html>
+
